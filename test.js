@@ -97,6 +97,16 @@ test('.store', t => {
 	});
 });
 
+test.cb('.getAsync() with no arg', t => {
+	t.context.conf.getAsync((err, val) => {
+		if (err) {
+			t.fail(err);
+		}
+		t.deepEqual(val, {});
+		t.end();
+	});
+});
+
 test.cb('.getAsync() with unset value', t => {
 	t.context.conf.getAsync('foo', (err, val) => {
 		if (err) {

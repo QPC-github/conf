@@ -134,8 +134,13 @@ class Conf {
 	}
 	getAsync(key, defaultValue, callback) {
 		if (!callback) {
-			callback = defaultValue;
-			defaultValue = undefined;
+			if (defaultValue) {
+				callback = defaultValue;
+				defaultValue = undefined;
+			} else {
+				callback = key;
+				key = undefined;
+			}
 		}
 
 		getStoreAsync(this.path, (err, store) => {
