@@ -97,6 +97,50 @@ test('.store', t => {
 	});
 });
 
+test.cb('.getAsync', t => {
+	t.context.conf.getAsync('foo', (err, val) => {
+		if (err) {
+			t.fail(err);
+		}
+		t.is(val, undefined);
+		t.context.conf.getAsync('foo', '🐴', (err, val) => {
+			if (err) {
+				t.fail(err);
+			}
+			t.is(val, '🐴');
+		});
+		t.context.conf.setAsync('foo', fixture, () => {
+			t.context.conf.getAsync('foo', (err, val) => {
+				if (err) {
+					t.fail(err);
+				}
+				t.is(val, fixture);
+				t.end();
+			});
+		});
+	});
+});
+
+test.cb('.setAsync()', t => {
+	t.context.conf.setAsync('foo', fixture, () => {
+		t.context.conf.setAsync('baz.boo', fixture, () => {
+			t.context.conf.getAsync('foo', (err, val) => {
+				if (err) {
+					t.fail(err);
+				}
+				t.is(val, fixture);
+				t.context.conf.getAsync('baz.boo', (err, val) => {
+					if (err) {
+						t.fail(err);
+					}
+					t.is(val, fixture);
+					t.end();
+				});
+			});
+		});
+	});
+});
+
 test('`defaults` option', t => {
 	const conf = new Conf({
 		cwd: tempfile(),

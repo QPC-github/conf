@@ -26,7 +26,8 @@ class Conf {
 		}
 
 		opts = Object.assign({
-			configName: 'config'
+			configName: 'config',
+			async: false
 		}, opts);
 
 		if (!opts.cwd) {
@@ -34,7 +35,9 @@ class Conf {
 		}
 
 		this.path = path.resolve(opts.cwd, `${opts.configName}.json`);
-		this.store = Object.assign(obj(), opts.defaults, this.store);
+		if (!opts.async) {
+			this.store = Object.assign(obj(), opts.defaults, this.store);
+		}
 	}
 	get(key, defaultValue) {
 		return dotProp.get(this.store, key, defaultValue);
@@ -91,6 +94,71 @@ class Conf {
 		mkdirp.sync(path.dirname(this.path));
 
 		fs.writeFileSync(this.path, JSON.stringify(val, null, '\t'));
+	}
+	getAsync(key, defaultValue, callback) {
+		if (!callback) {
+			callback = defaultValue;
+			defaultValue = undefined;
+		}
+
+		this.getStoreAsync((err, store) => {
+			callback(err, dotProp.get(store, key, defaultValue));
+		});
+	}
+	setAsync(key, val, callback) {
+		if (typeof key !== 'string' && typeof key !== 'object') {
+			throw new TypeError(`Expected \`key\` to be of type \`string\` or \`object\`, got ${typeof key}`);
+		}
+
+		this.getStoreAsync((err, store) => {
+			if (err) {
+				callback(err);
+				return;
+			}
+
+			if (typeof key === 'object') {
+				Object.keys(key).forEach(k => {
+					dotProp.set(store, k, key[k]);
+				});
+			} else {
+				dotProp.set(store, key, val);
+			}
+
+			this.setStoreAsync(store, callback);
+		});
+	}
+	getStoreAsync(callback) {
+		fs.readFile(this.path, 'utf8', (err, contents) => {
+			if (!err) {
+				callback(null, JSON.parse(contents));
+				return;
+			}
+
+			if (err.code === 'ENOENT') {
+				mkdirp(path.dirname(this.path), err => {
+					if (err) {
+						callback(err);
+					} else {
+						callback(null, obj());
+					}
+				});
+			}
+
+			if (err.name === 'SyntaxError') {
+				callback(null, obj());
+			}
+
+			callback(err);
+		});
+	}
+	setStoreAsync(val, callback) {
+		mkdirp(path.dirname(this.path), err => {
+			if (err) {
+				callback(err);
+			} else {
+				fs.writeFile(this.path, JSON.stringify(val, null, '\t'), callback);
+			}
+		});
 	}
 	// TODO: Use `Object.entries()` here at some point
 	* [Symbol.iterator]() {
