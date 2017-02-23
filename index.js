@@ -12,6 +12,43 @@ const obj = () => Object.create(null);
 delete require.cache[__filename];
 const parentDir = path.dirname(module.parent.filename);
 
+function getStoreAsync(storePath, callback) {
+	fs.readFile(storePath, 'utf8', (err, contents) => {
+		if (!err) {
+			callback(null, JSON.parse(contents));
+			return;
+		}
+
+		if (err.code === 'ENOENT') {
+			mkdirp(path.dirname(storePath), err => {
+				if (err) {
+					callback(err);
+				} else {
+					callback(null, obj());
+				}
+			});
+			return;
+		}
+
+		if (err.name === 'SyntaxError') {
+			callback(null, obj());
+			return;
+		}
+
+		callback(err);
+	});
+}
+
+function setStoreAsync(storePath, val, callback) {
+	mkdirp(path.dirname(storePath), err => {
+		if (err) {
+			callback(err);
+		} else {
+			fs.writeFile(storePath, JSON.stringify(val, null, '\t'), callback);
+		}
+	});
+}
+
 class Conf {
 	constructor(opts) {
 		const pkgPath = pkgUp.sync(parentDir);
@@ -101,7 +138,7 @@ class Conf {
 			defaultValue = undefined;
 		}
 
-		this.getStoreAsync((err, store) => {
+		getStoreAsync(this.path, (err, store) => {
 			callback(err, dotProp.get(store, key, defaultValue));
 		});
 	}
@@ -110,7 +147,7 @@ class Conf {
 			throw new TypeError(`Expected \`key\` to be of type \`string\` or \`object\`, got ${typeof key}`);
 		}
 
-		this.getStoreAsync((err, store) => {
+		getStoreAsync(this.path, (err, store) => {
 			if (err) {
 				callback(err);
 				return;
@@ -124,40 +161,7 @@ class Conf {
 				dotProp.set(store, key, val);
 			}
 
-			this.setStoreAsync(store, callback);
-		});
-	}
-	getStoreAsync(callback) {
-		fs.readFile(this.path, 'utf8', (err, contents) => {
-			if (!err) {
-				callback(null, JSON.parse(contents));
-				return;
-			}
-
-			if (err.code === 'ENOENT') {
-				mkdirp(path.dirname(this.path), err => {
-					if (err) {
-						callback(err);
-					} else {
-						callback(null, obj());
-					}
-				});
-			}
-
-			if (err.name === 'SyntaxError') {
-				callback(null, obj());
-			}
-
-			callback(err);
-		});
-	}
-	setStoreAsync(val, callback) {
-		mkdirp(path.dirname(this.path), err => {
-			if (err) {
-				callback(err);
-			} else {
-				fs.writeFile(this.path, JSON.stringify(val, null, '\t'), callback);
-			}
+			setStoreAsync(this.path, store, callback);
 		});
 	}
 	// TODO: Use `Object.entries()` here at some point
