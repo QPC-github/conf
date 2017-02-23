@@ -97,46 +97,70 @@ test('.store', t => {
 	});
 });
 
-test.cb('.getAsync', t => {
+test.cb('.getAsync() with unset value', t => {
 	t.context.conf.getAsync('foo', (err, val) => {
 		if (err) {
 			t.fail(err);
 		}
 		t.is(val, undefined);
-		t.context.conf.getAsync('foo', '🐴', (err, val) => {
+		t.end();
+	});
+});
+
+test.cb('.getAsync() with set value', t => {
+	t.context.conf.setAsync('foo', fixture, () => {
+		t.context.conf.getAsync('foo', (err, val) => {
 			if (err) {
 				t.fail(err);
 			}
-			t.is(val, '🐴');
-		});
-		t.context.conf.setAsync('foo', fixture, () => {
-			t.context.conf.getAsync('foo', (err, val) => {
-				if (err) {
-					t.fail(err);
-				}
-				t.is(val, fixture);
-				t.end();
-			});
+			t.is(val, fixture);
+			t.end();
 		});
 	});
 });
 
-test.cb('.setAsync()', t => {
+test.cb('.getAsync() with default value', t => {
+	t.context.conf.getAsync('foo', '🐴', (err, val) => {
+		if (err) {
+			t.fail(err);
+		}
+		t.is(val, '🐴');
+		t.end();
+	});
+});
+
+test.cb('.setAsync() with key', t => {
 	t.context.conf.setAsync('foo', fixture, () => {
-		t.context.conf.setAsync('baz.boo', fixture, () => {
-			t.context.conf.getAsync('foo', (err, val) => {
-				if (err) {
-					t.fail(err);
-				}
-				t.is(val, fixture);
-				t.context.conf.getAsync('baz.boo', (err, val) => {
-					if (err) {
-						t.fail(err);
-					}
-					t.is(val, fixture);
-					t.end();
-				});
-			});
+		t.context.conf.getAsync('foo', (err, val) => {
+			if (err) {
+				t.fail(err);
+			}
+			t.is(val, fixture);
+			t.end();
+		});
+	});
+});
+
+test.cb('.setAsync() with path', t => {
+	t.context.conf.setAsync('baz.boo', fixture, () => {
+		t.context.conf.getAsync('baz.boo', (err, val) => {
+			if (err) {
+				t.fail(err);
+			}
+			t.is(val, fixture);
+			t.end();
+		});
+	});
+});
+
+test.cb('.setAsync() with object', t => {
+	t.context.conf.setAsync({foo: fixture}, () => {
+		t.context.conf.getAsync('foo', (err, val) => {
+			if (err) {
+				t.fail(err);
+			}
+			t.is(val, fixture);
+			t.end();
 		});
 	});
 });

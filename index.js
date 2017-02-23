@@ -147,13 +147,19 @@ class Conf {
 			throw new TypeError(`Expected \`key\` to be of type \`string\` or \`object\`, got ${typeof key}`);
 		}
 
+		const isObject = typeof key === 'object';
+
+		if (isObject) {
+			callback = val;
+		}
+
 		getStoreAsync(this.path, (err, store) => {
 			if (err) {
 				callback(err);
 				return;
 			}
 
-			if (typeof key === 'object') {
+			if (isObject) {
 				Object.keys(key).forEach(k => {
 					dotProp.set(store, k, key[k]);
 				});
