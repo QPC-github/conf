@@ -14,28 +14,32 @@ const parentDir = path.dirname(module.parent.filename);
 
 function getStoreAsync(storePath, callback) {
 	fs.readFile(storePath, 'utf8', (err, contents) => {
-		if (!err) {
+		if (err) {
+			if (err.code === 'ENOENT') {
+				mkdirp(path.dirname(storePath), err => {
+					if (err) {
+						callback(err);
+					} else {
+						callback(null, obj());
+					}
+				});
+				return;
+			}
+
+			callback(err);
+			return;
+		}
+
+		try {
 			callback(null, JSON.parse(contents));
-			return;
+		} catch (err) {
+			if (err.name === 'SyntaxError') {
+				callback(null, obj());
+				return;
+			} else {
+				callback(err);
+			}
 		}
-
-		if (err.code === 'ENOENT') {
-			mkdirp(path.dirname(storePath), err => {
-				if (err) {
-					callback(err);
-				} else {
-					callback(null, obj());
-				}
-			});
-			return;
-		}
-
-		if (err.name === 'SyntaxError') {
-			callback(null, obj());
-			return;
-		}
-
-		callback(err);
 	});
 }
 

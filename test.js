@@ -1,3 +1,4 @@
+import fs from 'fs';
 import path from 'path';
 import {serial as test} from 'ava';
 import tempfile from 'tempfile';
@@ -8,7 +9,8 @@ import Conf from './';
 const fixture = '🦄';
 
 test.beforeEach(t => {
-	t.context.conf = new Conf({cwd: tempfile()});
+	const tempdir = t.context.tempdir = tempfile();
+	t.context.conf = new Conf({cwd: tempdir});
 });
 
 test('.get()', t => {
@@ -100,7 +102,7 @@ test('.store', t => {
 test.cb('.getAsync() with no arg', t => {
 	t.context.conf.getAsync((err, val) => {
 		if (err) {
-			t.fail(err);
+			t.fail(err.stack);
 		}
 		t.deepEqual(val, {});
 		t.end();
@@ -110,7 +112,7 @@ test.cb('.getAsync() with no arg', t => {
 test.cb('.getAsync() with unset value', t => {
 	t.context.conf.getAsync('foo', (err, val) => {
 		if (err) {
-			t.fail(err);
+			t.fail(err.stack);
 		}
 		t.is(val, undefined);
 		t.end();
@@ -121,7 +123,7 @@ test.cb('.getAsync() with set value', t => {
 	t.context.conf.setAsync('foo', fixture, () => {
 		t.context.conf.getAsync('foo', (err, val) => {
 			if (err) {
-				t.fail(err);
+				t.fail(err.stack);
 			}
 			t.is(val, fixture);
 			t.end();
@@ -132,10 +134,40 @@ test.cb('.getAsync() with set value', t => {
 test.cb('.getAsync() with default value', t => {
 	t.context.conf.getAsync('foo', '🐴', (err, val) => {
 		if (err) {
-			t.fail(err);
+			t.fail(err.stack);
 		}
 		t.is(val, '🐴');
 		t.end();
+	});
+});
+
+test.cb('.getAsync() when file is empty defaults to empty object', t => {
+	fs.writeFile(path.join(t.context.tempdir, 'config.json'), '', err => {
+		if (err) {
+			t.fail(err.stack);
+		}
+		t.context.conf.getAsync((err, val) => {
+			if (err) {
+				t.fail(err.stack);
+			}
+			t.deepEqual(val, {});
+			t.end();
+		});
+	});
+});
+
+test.cb('.getAsync() when file has invalid JSON defaults to empty object', t => {
+	fs.writeFile(path.join(t.context.tempdir, 'config.json'), '{', err => {
+		if (err) {
+			t.fail(err.stack);
+		}
+		t.context.conf.getAsync((err, val) => {
+			if (err) {
+				t.fail(err.stack);
+			}
+			t.deepEqual(val, {});
+			t.end();
+		});
 	});
 });
 
@@ -143,7 +175,7 @@ test.cb('.setAsync() with key', t => {
 	t.context.conf.setAsync('foo', fixture, () => {
 		t.context.conf.getAsync('foo', (err, val) => {
 			if (err) {
-				t.fail(err);
+				t.fail(err.stack);
 			}
 			t.is(val, fixture);
 			t.end();
@@ -155,7 +187,7 @@ test.cb('.setAsync() with path', t => {
 	t.context.conf.setAsync('baz.boo', fixture, () => {
 		t.context.conf.getAsync('baz.boo', (err, val) => {
 			if (err) {
-				t.fail(err);
+				t.fail(err.stack);
 			}
 			t.is(val, fixture);
 			t.end();
@@ -167,7 +199,7 @@ test.cb('.setAsync() with object', t => {
 	t.context.conf.setAsync({foo: fixture}, () => {
 		t.context.conf.getAsync('foo', (err, val) => {
 			if (err) {
-				t.fail(err);
+				t.fail(err.stack);
 			}
 			t.is(val, fixture);
 			t.end();
